@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeCode IDE</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── LIGHT THEME (default) ── */
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f9fc;
+    --bg3: #edf1f7;
+    --bg4: #e2e8f2;
+    --border: #d1d9e6;
+    --pink: #f14c55;
+    --pink2: #d93a43;
+    --pink-dim: #fde8e9;
+    --cyan: #6aaa97;
+    --cyan-dim: #d6eeea;
+    --purple: #8486a9;
+    --purple-dim: #e4e4f2;
+    --yellow: #b8843a;
+    --green: #4e9470;
+    --red: #b85555;
+    --orange: #c07850;
+    --white: #1e2a38;
+    --muted: #8fa0b4;
+    --text: #1e2a38;
+    --header-bg: rgba(247,249,252,0.94);
+  }
+
+  /* ── DARK THEME ── */
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --bg2: #161c26;
+    --bg3: #1e2535;
+    --bg4: #252f42;
+    --border: #2e3a52;
+    --pink: #f14c55;
+    --pink2: #d93a43;
+    --pink-dim: #3a1a1c;
+    --cyan: #5ab89e;
+    --cyan-dim: #163027;
+    --purple: #9a9cc0;
+    --purple-dim: #22243a;
+    --yellow: #d4983e;
+    --green: #5aaa7e;
+    --red: #e06060;
+    --orange: #d08858;
+    --white: #cdd9eb;
+    --muted: #4e607a;
+    --text: #cdd9eb;
+    --header-bg: rgba(13,17,23,0.94);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { transition: background 0.2s, color 0.2s; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── ANIMATED BACKGROUND BLOBS ── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 20s ease-in-out infinite alternate;
+  }
+  .blob-1 { width: 500px; height: 500px; background: var(--pink); top: -150px; left: -100px; animation-delay: 0s; }
+  .blob-2 { width: 400px; height: 400px; background: var(--purple); bottom: -100px; right: -100px; animation-delay: -7s; }
+  .blob-3 { width: 300px; height: 300px; background: var(--cyan); top: 40%; left: 40%; animation-delay: -13s; }
+
+  @keyframes drift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(40px, 30px) scale(1.1); }
+  }
+
+  /* ── LAYOUT ── */
+  .wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .logo-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    background: var(--pink-dim);
+    color: var(--pink2);
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid var(--pink);
+  }
+
+  .header-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .tag-pill {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg2);
+  }
+  .tag-pill span { color: var(--cyan); }
+
+  /* ── MAIN SPLIT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .panel-title .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-pink { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+  .dot-cyan { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  /* ── EDITOR PANEL — WOW FACTOR ── */
+  .editor-panel {
+    position: relative;
+  }
+
+  /* Animated gradient top border */
+  .editor-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan), var(--pink));
+    background-size: 200% 100%;
+    animation: borderSlide 4s linear infinite;
+    z-index: 2;
+  }
+  @keyframes borderSlide {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  /* Tab-bar style panel header for editor */
+  .editor-panel .panel-header {
+    padding: 0 16px 0 0;
+    background: var(--bg3);
+    gap: 0;
+    min-height: 44px;
+  }
+
+  .file-tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 20px;
+    height: 100%;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    border-bottom: 2px solid var(--pink);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .file-tab .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .file-tab-name { letter-spacing: 0.5px; }
+  .file-tab-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    background: var(--pink-dim);
+    color: var(--pink);
+    border-radius: 4px;
+    border: 1px solid var(--pink);
+    letter-spacing: 0.5px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── EDITOR BODY CONTAINER ── */
+  .editor-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    overflow-y: auto;
+    position: relative;
+    min-height: 0;
+    background: var(--bg);
+  }
+  .editor-body::-webkit-scrollbar { width: 5px; }
+  .editor-body::-webkit-scrollbar-track { background: transparent; }
+  .editor-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── DECORATIVE BACKGROUND SHAPES ── */
+  .deco-shapes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .deco {
+    position: absolute;
+    border: 1px solid var(--border);
+    opacity: 0.4;
+  }
+  .deco-circle-1 {
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    top: -70px; right: -60px;
+    animation: decoFloat 9s ease-in-out infinite alternate;
+  }
+  .deco-circle-2 {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    bottom: 60px; left: -28px;
+    animation: decoFloat 12s ease-in-out infinite alternate-reverse;
+  }
+  .deco-ring {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    bottom: 180px; right: 18px;
+    animation: decoFloat 7s ease-in-out infinite alternate;
+  }
+  .deco-diamond {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    top: 210px; right: 28px;
+    animation: decoFloatDiamond 10s ease-in-out infinite alternate;
+  }
+  .deco-sq {
+    width: 18px; height: 18px;
+    border-radius: 3px;
+    top: 55%; left: 82%;
+    animation: decoFloat 8s ease-in-out infinite alternate;
+    opacity: 0.25;
+  }
+  .deco-sym {
+    position: absolute;
+    color: var(--border);
+    font-size: 13px;
+    opacity: 0.45;
+    user-select: none;
+    line-height: 1;
+  }
+  @keyframes decoFloat {
+    0%   { transform: translate(0,0); }
+    100% { transform: translate(8px,-14px); }
+  }
+  @keyframes decoFloatDiamond {
+    0%   { transform: rotate(45deg) translate(0,0); }
+    100% { transform: rotate(55deg) translate(6px,-10px); }
+  }
+
+  /* ── EXAMPLES BOX ── */
+  .examples-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .examples-box:hover {
+    border-color: var(--purple);
+    box-shadow: 0 4px 16px rgba(132,134,169,0.1);
+  }
+  .examples-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .examples-label .lbl-icon { color: var(--purple); }
+  .examples-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .examples-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .example-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .example-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--border);
+    transition: background 0.18s;
+  }
+  .example-card:nth-child(1)::before { background: var(--pink); }
+  .example-card:nth-child(2)::before { background: var(--cyan); }
+  .example-card:nth-child(3)::before { background: var(--purple); }
+  .example-card:nth-child(4)::before { background: var(--yellow); }
+  .example-card:nth-child(5)::before { background: var(--green); }
+  .example-card:nth-child(6)::before { background: var(--orange); }
+  .example-card:nth-child(7)::before { background: var(--red); }
+  .example-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(241,76,85,0.13);
+    border-color: var(--pink);
+  }
+  .example-card:hover::before { background: var(--pink); }
+  .example-card:active { transform: translateY(0) scale(0.97); }
+  .ex-card-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .ex-card-info { min-width: 0; }
+  .ex-card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: var(--text);
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ex-card-sub {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'Space Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── EDITOR BOX ── */
+  .editor-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 200px;
+    position: relative;
+    z-index: 1;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+  .editor-box:focus-within {
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px var(--pink-dim), 0 8px 32px rgba(241,76,85,0.12);
+  }
+  .editor-box-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+  .tl-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tl-red    { background: #ff5f57; box-shadow: 0 0 5px #ff5f5788; }
+  .tl-yellow { background: #febc2e; box-shadow: 0 0 5px #febc2e88; }
+  .tl-green  { background: #28c840; box-shadow: 0 0 5px #28c84088; }
+  .editor-box-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── CODE EDITOR ── */
+  .editor-wrap {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+    background-color: var(--bg2);
+    background-image: radial-gradient(var(--bg4) 1px, transparent 1px);
+    background-size: 22px 22px;
+    transition: box-shadow 0.2s;
+  }
+  .editor-wrap:focus-within {
+    box-shadow: inset 3px 0 0 var(--pink), inset 0 0 60px rgba(241,76,85,0.04);
+  }
+
+  .line-nums {
+    padding: 16px 0;
+    width: 48px;
+    text-align: right;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--bg3) 0%, transparent 100%);
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    user-select: none;
+    position: relative;
+    z-index: 1;
+  }
+  .line-num {
+    display: block;
+    line-height: 22px;
+    font-size: 11px;
+    color: var(--muted);
+    padding-right: 12px;
+    font-family: 'Space Mono', monospace;
+    transition: color 0.1s;
+  }
+  .line-num.active { color: var(--pink); font-weight: 700; }
+
+  #editor {
+    flex: 1;
+    padding: 16px 16px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13.5px;
+    line-height: 22px;
+    resize: none;
+    tab-size: 2;
+    caret-color: var(--pink);
+    min-height: 0;
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+  }
+  #editor::selection { background: rgba(241,76,85,0.18); }
+  #editor::placeholder { color: var(--muted); font-style: italic; }
+  #editor::-webkit-scrollbar { width: 5px; }
+  #editor::-webkit-scrollbar-track { background: transparent; }
+  #editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  #editor::-webkit-scrollbar-thumb:hover { background: var(--pink); }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: border-color 0.2s;
+  }
+  .info-box:hover { border-color: var(--cyan); }
+
+  .editor-stats {
+    display: flex; gap: 16px;
+    font-size: 11px; color: var(--muted);
+  }
+  .editor-stats span { color: var(--purple); }
+
+  /* ── RUN BUTTON ROW ── */
+  .editor-run-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 0 4px 0;
+  }
+
+  /* ── RUN BUTTON ── */
+  .run-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 22px;
+    background: linear-gradient(135deg, #e01c1c, #b80000);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: runPulse 2.8s ease-in-out infinite;
+  }
+  @keyframes runPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(241,76,85,0.25), 0 2px 8px rgba(0,0,0,0.12); }
+    50%       { box-shadow: 0 0 28px rgba(241,76,85,0.55), 0 4px 16px rgba(241,76,85,0.2); }
+  }
+  .run-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(241,76,85,0.5), 0 2px 8px rgba(0,0,0,0.15) !important;
+    animation: none;
+  }
+  .run-btn:active { transform: translateY(0) scale(0.97); animation: none; }
+  .run-btn:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    transform: none; animation: none; box-shadow: none;
+  }
+  .run-btn .spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  .run-btn.loading .spinner { display: block; }
+  .run-btn.loading .btn-icon { display: none; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── RIGHT PANEL (output + ref) ── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 10px 18px;
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    user-select: none;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--pink);
+    border-bottom-color: var(--pink);
+  }
+
+  /* ── OUTPUT ── */
+  .output-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    min-height: 0;
+    background: var(--bg);
+  }
+
+  .output-wrap::-webkit-scrollbar { width: 6px; }
+  .output-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .output-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .output-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .output-empty .empty-icon {
+    font-size: 32px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    color: var(--border);
+    line-height: 1;
+  }
+
+  /* ── OUTPUT LINES ── */
+  .out-block {
+    margin-bottom: 4px;
+    font-size: 12.5px;
+    line-height: 20px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .out-phase {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 10px 0 4px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .out-phase.lexer  { background: rgba(132,134,169,0.09); color: var(--purple); border-left: 3px solid var(--purple); }
+  .out-phase.parser { background: rgba(106,170,151,0.10); color: var(--cyan);   border-left: 3px solid var(--cyan); }
+  .out-phase.sem    { background: rgba(241,76,85,0.08);   color: var(--pink);   border-left: 3px solid var(--pink); }
+  .out-phase.symtbl { background: rgba(78,148,112,0.09);  color: var(--green);  border-left: 3px solid var(--green); }
+  .out-phase.divider { background: none; border-left: none; color: var(--border); letter-spacing: 0; font-size: 11px; padding: 2px 0; }
+
+  .out-token-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 3px 0;
+  }
+  .out-tag {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .tag-lexer  { background: rgba(132,134,169,0.12); color: var(--purple); }
+  .tag-parser { background: rgba(106,170,151,0.12); color: var(--cyan); }
+  .tag-sem    { background: rgba(241,76,85,0.10);   color: var(--pink); }
+  .tag-symtbl { background: rgba(78,148,112,0.12);  color: var(--green); }
+
+  .out-ok   { color: var(--green); }
+  .out-err  { color: var(--red); font-weight: 700; }
+  .out-warn { color: var(--yellow); }
+  .out-info { color: var(--text); }
+
+  .token-value {
+    color: var(--yellow);
+    font-weight: 700;
+  }
+  .token-arrow { color: var(--muted); }
+  .token-type  { color: var(--cyan); }
+
+  /* ── SYMBOL TABLE ── */
+  .sym-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .sym-table th {
+    padding: 6px 12px;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--green);
+    background: rgba(78,148,112,0.08);
+    border-bottom: 1px solid rgba(78,148,112,0.18);
+  }
+  .sym-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sym-table tr:last-child td { border-bottom: none; }
+  .sym-name  { color: var(--white); font-weight: 700; }
+  .sym-type  { color: var(--pink); }
+  .sym-val   { color: var(--yellow); }
+  .sym-level { color: var(--cyan); text-align: center; }
+  .sym-icon  { text-align: center; }
+  .sym-level-header td {
+    background: var(--bg3);
+    color: var(--orange);
+    font-weight: 700;
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82em;
+    letter-spacing: 0.04em;
+  }
+  .sym-subtotal td {
+    background: var(--bg2);
+    color: var(--muted);
+    font-style: italic;
+    padding: 3px 12px 6px;
+    font-size: 0.82em;
+    border-bottom: 2px solid var(--border);
+  }
+  .sym-grand-total td {
+    background: var(--cyan-dim);
+    color: var(--green);
+    font-weight: 700;
+    padding: 6px 12px;
+    font-size: 0.88em;
+    border-top: 2px solid var(--cyan);
+  }
+
+  /* ── REFERENCE TAB ── */
+  .ref-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg);
+    display: none;
+  }
+  .ref-wrap.active { display: block; }
+  .output-wrap.active { display: block; }
+  .output-wrap:not(.active) { display: none; }
+
+  .ref-section { margin-bottom: 20px; }
+  .ref-heading {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--pink);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ref-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .ref-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+  }
+  .ref-kw {
+    color: var(--yellow);
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    min-width: 72px;
+  }
+  .ref-desc {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .ref-example {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 20px;
+    margin-top: 4px;
+  }
+  .ex-comment { color: var(--muted); font-style: italic; }
+  .ex-kw   { color: var(--pink); font-weight: 700; }
+  .ex-kw2  { color: var(--purple); font-weight: 700; }
+  .ex-val  { color: var(--yellow); }
+  .ex-str  { color: var(--green); }
+  .ex-op   { color: var(--cyan); }
+  .ex-delim{ color: var(--orange); font-weight: 700; }
+
+  /* ── SNIPPET BUTTONS ── */
+  .snippet-grid {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .snippet-btn {
+    padding: 5px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--purple);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snippet-btn:hover {
+    background: var(--purple-dim);
+    border-color: var(--purple);
+    color: var(--white);
+  }
+
+  /* ── RIGHT PANEL BODY ── */
+  .right-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    overflow-y: auto;
+    position: relative;
+    min-height: 0;
+    background: var(--bg);
+  }
+  .right-body::-webkit-scrollbar { width: 5px; }
+  .right-body::-webkit-scrollbar-track { background: transparent; }
+  .right-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── OUTPUT BOX (floating card) ── */
+  .output-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 200px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  /* Tabs become the header of the output-box */
+  .output-box .tabs {
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+
+  /* Ensure output/ref panels fill the output-box properly */
+  .output-box .output-wrap {
+    flex: 1;
+    min-height: 0;
+    background: var(--bg2);
+    display: none;
+  }
+  .output-box .output-wrap.active {
+    display: flex;
+    flex-direction: column;
+  }
+  .output-box .ref-wrap {
+    flex: 1;
+    min-height: 0;
+    background: var(--bg2);
+    display: none;
+  }
+  .output-box .ref-wrap.active {
+    display: block;
+    flex: 1;
+  }
+  .output-box .output-empty {
+    flex: 1;
+  }
+  #outputContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  /* ── STATUS BOX ── */
+  .status-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    font-size: 11px;
+    color: var(--muted);
+    transition: border-color 0.2s;
+  }
+  .status-box:hover { border-color: var(--green); }
+
+  /* ── STATUS BAR (kept for fallback) ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 16px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .status-bar .status-left { display: flex; align-items: center; gap: 12px; }
+  .status-indicator {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .status-dot.error { background: var(--red); animation: none; }
+  .status-dot.loading { background: var(--yellow); animation: pulse-green 0.5s ease-in-out infinite; }
+
+  /* ── DOCS DRAWER ── */
+  .docs-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .docs-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .docs-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: 380px;
+    max-width: 92vw;
+    height: 100vh;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 201;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+  }
+  .docs-drawer.open {
+    transform: translateX(0);
+  }
+  .docs-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+  .docs-drawer-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--pink);
+  }
+  .docs-close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 14px;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+  }
+  .docs-close-btn:hover { border-color: var(--red); color: var(--red); }
+  .docs-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .docs-body::-webkit-scrollbar { width: 5px; }
+  .docs-body::-webkit-scrollbar-track { background: transparent; }
+  .docs-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .docs-section { margin-bottom: 22px; }
+  .docs-section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--pink);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .docs-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .docs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .docs-table tr { border-bottom: 1px solid var(--border); }
+  .docs-table tr:last-child { border-bottom: none; }
+  .docs-table td { padding: 5px 8px; vertical-align: top; line-height: 1.5; }
+  .docs-kw {
+    font-weight: 700;
+    color: var(--yellow);
+    white-space: nowrap;
+    width: 90px;
+  }
+  .docs-sym {
+    color: var(--cyan);
+    white-space: nowrap;
+    width: 60px;
+  }
+  .docs-desc { color: var(--muted); }
+  .docs-code {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    line-height: 20px;
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+  .docs-note {
+    background: var(--pink-dim);
+    border-left: 3px solid var(--pink);
+    border-radius: 0 5px 5px 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+
+  /* ── DOCS OPEN BUTTON ── */
+  .docs-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--pink-dim);
+    border: 1px solid var(--pink);
+    border-radius: 20px;
+    color: var(--pink);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .docs-btn:hover {
+    background: var(--pink);
+    color: #fff;
+  }
+
+  /* ── THEME TOGGLE ── */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .theme-toggle:hover {
+    border-color: var(--pink);
+    color: var(--pink);
+  }
+  .theme-toggle .toggle-icon {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  /* ── CLEAR BUTTON ── */
+  .clear-btn {
+    padding: 4px 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .panel { border-right: none; border-bottom: 1px solid var(--border); }
+    #editor { min-height: 200px; }
+  }
+
+  /* ── CONSOLE OUTPUT CARD ── */
+  .console-card {
+    border: 1px solid var(--pink);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg2);
+    box-shadow: 0 0 0 3px var(--pink-dim), 0 6px 24px rgba(241,76,85,0.1);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .console-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: linear-gradient(90deg, var(--pink-dim), var(--bg3));
+    border-bottom: 1px solid var(--pink);
+  }
+  .console-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .console-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--pink);
+    opacity: 0.5;
+  }
+  .console-dot:first-child { opacity: 1; box-shadow: 0 0 6px var(--pink); }
+  .console-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--pink);
+    margin-left: 4px;
+  }
+  .console-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--pink-dim);
+    color: var(--pink);
+    border: 1px solid var(--pink);
+  }
+  .console-body {
+    padding: 14px 16px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 24px;
+  }
+  .console-body::-webkit-scrollbar { width: 4px; }
+  .console-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .console-line {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid var(--bg3);
+  }
+  .console-line:last-child { border-bottom: none; }
+  .console-arrow {
+    color: var(--pink);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .console-val {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .console-empty {
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .console-empty-icon { color: var(--border); }
+  .console-kw {
+    color: var(--pink);
+    font-weight: 700;
+  }
+
+  /* ── PHASE CARDS ── */
+  .phase-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background: var(--bg2);
+    transition: box-shadow 0.2s, border-color 0.15s;
+  }
+  .phase-card:last-child { margin-bottom: 0; }
+  .phase-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+  .phase-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg3);
+    transition: background 0.15s;
+  }
+  .phase-card-header:hover { background: var(--bg4); }
+
+  .phase-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    opacity: 0.3;
+    line-height: 1;
+    flex-shrink: 0;
+    min-width: 26px;
+  }
+  .phase-card-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .phase-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .phase-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg4);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .phase-status {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .phase-status.ok   { background: rgba(78,148,112,0.14); color: var(--green); border: 1px solid var(--green); }
+  .phase-status.err  { background: rgba(184,85,85,0.14);  color: var(--red);   border: 1px solid var(--red); }
+  .phase-status.warn { background: rgba(184,132,58,0.14); color: var(--yellow); border: 1px solid var(--yellow); }
+
+  .phase-toggle {
+    font-size: 11px;
+    color: var(--muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .phase-card.collapsed .phase-toggle { transform: rotate(-90deg); }
+
+  .phase-card-body {
+    border-top: 1px solid var(--border);
+    padding: 12px 14px;
+    max-height: 280px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 20px;
+    background: var(--bg2);
+  }
+  .phase-card-body::-webkit-scrollbar { width: 4px; }
+  .phase-card-body::-webkit-scrollbar-track { background: transparent; }
+  .phase-card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .phase-card.collapsed .phase-card-body { display: none; }
+
+  /* Phase accent — left border + label/num color */
+  .pc-lexer  { border-left: 3px solid var(--purple); }
+  .pc-parser { border-left: 3px solid var(--cyan); }
+  .pc-sem    { border-left: 3px solid var(--pink); }
+  .pc-sym    { border-left: 3px solid var(--green); }
+
+  .pc-lexer  .phase-card-label, .pc-lexer  .phase-num { color: var(--purple); }
+  .pc-parser .phase-card-label, .pc-parser .phase-num { color: var(--cyan); }
+  .pc-sem    .phase-card-label, .pc-sem    .phase-num { color: var(--pink); }
+  .pc-sym    .phase-card-label, .pc-sym    .phase-num { color: var(--green); }
+
+  /* ── FADE IN ANIMATION ── */
+  .fade-in {
+    animation: fadeIn 0.3s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">VC</div>
+      <div class="logo-text">VibeCode</div>
+      <div class="logo-badge">IDE</div>
+    </div>
+    <div class="header-right">
+      <div class="tag-pill">CS0035 <span>Final Project</span></div>
+      <div class="tag-pill">Gen Z Edition</div>
+      <button class="docs-btn" onclick="openDocs()">&#9432; Cheat Sheet</button>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+        <span class="toggle-icon" id="themeIcon">&#9790;</span>
+        <span id="themeLabel">dark</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- LEFT: EDITOR -->
+    <div class="panel editor-panel">
+      <div class="panel-header">
+        <div class="file-tab">
+          <div class="dot dot-pink"></div>
+          <span class="file-tab-name">main.slay</span>
+          <span class="file-tab-badge">active</span>
+        </div>
+      </div>
+
+      <div class="editor-body">
+
+        <!-- Decorative background shapes -->
+        <div class="deco-shapes" aria-hidden="true">
+          <div class="deco deco-circle-1"></div>
+          <div class="deco deco-circle-2"></div>
+          <div class="deco deco-ring"></div>
+          <div class="deco deco-diamond"></div>
+          <div class="deco deco-sq"></div>
+          <span class="deco-sym" style="top:18%;left:87%">+</span>
+          <span class="deco-sym" style="top:42%;left:5%">&#9670;</span>
+          <span class="deco-sym" style="top:68%;left:90%">&#10005;</span>
+          <span class="deco-sym" style="top:80%;left:50%">&#9675;</span>
+          <span class="deco-sym" style="top:30%;left:92%">&#9632;</span>
+        </div>
+
+        <!-- Example loader -->
+        <div class="examples-box">
+          <div class="examples-label">
+            <span class="lbl-icon">&#9670;</span> Load Example
+          </div>
+          <div class="examples-grid">
+            <div class="example-card" onclick="loadExample('hello')">
+              <span class="ex-card-icon">&#9654;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">Hello World</div>
+                <div class="ex-card-sub">texting + spill</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('if-else')">
+              <span class="ex-card-icon">&#9670;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">If / Else</div>
+                <div class="ex-card-sub">lowkey + ngl</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('while')">
+              <span class="ex-card-icon">&#8635;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">While Loop</div>
+                <div class="ex-card-sub">highkey + done</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('arithmetic')">
+              <span class="ex-card-icon">&#43;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">Calculator</div>
+                <div class="ex-card-sub">numfr + arith</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('bool')">
+              <span class="ex-card-icon">&#9711;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">Boolean</div>
+                <div class="ex-card-sub">vibe + slay</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('counter')">
+              <span class="ex-card-icon">&#8764;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">Counter</div>
+                <div class="ex-card-sub">numfr + while</div>
+              </div>
+            </div>
+            <div class="example-card" onclick="loadExample('track-error')">
+              <span class="ex-card-icon">&#9888;</span>
+              <div class="ex-card-info">
+                <div class="ex-card-title">Track Error</div>
+                <div class="ex-card-sub">lowkey + spill</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code editor box -->
+        <div class="editor-box">
+          <div class="editor-box-header">
+            <div class="tl-dot tl-red"></div>
+            <div class="tl-dot tl-yellow"></div>
+            <div class="tl-dot tl-green"></div>
+            <span class="editor-box-label">main.slay</span>
+          </div>
+          <div class="editor-wrap">
+            <div class="line-nums" id="lineNums">
+              <span class="line-num">1</span>
+            </div>
+            <textarea id="editor" spellcheck="false"
+              placeholder="// write your VibeCode code here&#10;// press compile &amp; run when you're ready&#10;&#10;numfr rizz hits 100 periodt&#10;spill rizz periodt"
+              oninput="updateLineNums(); updateStats();"
+              onkeydown="handleTab(event)"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Info / stats box -->
+        <div class="info-box">
+          <div class="editor-stats">
+            <span>lines: <span id="statLines">0</span></span>
+            <span>tokens: <span id="statTokens">—</span></span>
+            <span>UTF-8</span>
+          </div>
+          <button class="clear-btn" onclick="clearEditor()">clear x</button>
+        </div>
+
+        <!-- Run button row -->
+        <div class="editor-run-row">
+          <button class="run-btn" id="runBtn" onclick="runCode()">
+            <div class="spinner"></div>
+            <span class="btn-icon">&#9654;</span>
+            <span>compile &amp; run</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: OUTPUT + REF -->
+    <div class="panel right-panel">
+      <div class="right-body">
+
+        <!-- Decorative background shapes -->
+        <div class="deco-shapes" aria-hidden="true">
+          <div class="deco deco-circle-1"></div>
+          <div class="deco deco-circle-2"></div>
+          <div class="deco deco-ring"></div>
+          <div class="deco deco-diamond"></div>
+          <span class="deco-sym" style="top:15%;left:88%">&#9675;</span>
+          <span class="deco-sym" style="top:55%;left:4%">+</span>
+          <span class="deco-sym" style="top:75%;left:92%">&#9670;</span>
+          <span class="deco-sym" style="top:35%;left:94%">&#9632;</span>
+        </div>
+
+        <!-- Output / Reference floating box -->
+        <div class="output-box">
+
+          <div class="tabs">
+            <button class="tab active" id="tabProgramOut" onclick="switchTab('programout')">output</button>
+            <button class="tab" id="tabOutput" onclick="switchTab('output')">tokens</button>
+            <button class="tab" id="tabRef" onclick="switchTab('ref')">reference</button>
+          </div>
+
+          <!-- PROGRAM OUTPUT PANEL -->
+          <div class="output-wrap active" id="programOutPanel">
+            <div class="output-empty" id="programOutEmpty">
+              <div class="empty-icon">[ ]</div>
+              <div>no output yet</div>
+              <div style="font-size:11px; color:var(--muted);">run your code to see program output</div>
+            </div>
+            <div id="programOutContent" style="display:none; padding:14px; overflow-y:auto; flex:1;"></div>
+          </div>
+
+          <!-- TOKENS PANEL -->
+          <div class="output-wrap" id="outputPanel">
+            <div class="output-empty" id="emptyState">
+              <div class="empty-icon">[ ]</div>
+              <div>no output yet</div>
+              <div style="font-size:11px; color: var(--muted);">write some VibeCode code and hit compile</div>
+            </div>
+            <div id="outputContent" style="display:none;"></div>
+          </div>
+
+          <!-- REFERENCE PANEL -->
+          <div class="ref-wrap" id="refPanel">
+
+        <div class="ref-section">
+          <div class="ref-heading">data types</div>
+          <div class="ref-grid">
+            <div class="ref-item"><div class="ref-kw">numfr</div><div class="ref-desc">number (int/float)</div></div>
+            <div class="ref-item"><div class="ref-kw">texting</div><div class="ref-desc">string (text value)</div></div>
+            <div class="ref-item"><div class="ref-kw">vibe</div><div class="ref-desc">boolean (slay/flop)</div></div>
+            <div class="ref-item"><div class="ref-kw">slay</div><div class="ref-desc">boolean true</div></div>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <div class="ref-heading">keywords</div>
+          <div class="ref-grid">
+            <div class="ref-item"><div class="ref-kw">hits</div><div class="ref-desc">assignment operator (=)</div></div>
+            <div class="ref-item"><div class="ref-kw">periodt</div><div class="ref-desc">end-of-statement (;)</div></div>
+            <div class="ref-item"><div class="ref-kw">spill</div><div class="ref-desc">output / print</div></div>
+            <div class="ref-item"><div class="ref-kw">lowkey</div><div class="ref-desc">if statement</div></div>
+            <div class="ref-item"><div class="ref-kw">ngl</div><div class="ref-desc">else clause</div></div>
+            <div class="ref-item"><div class="ref-kw">highkey</div><div class="ref-desc">while loop</div></div>
+            <div class="ref-item"><div class="ref-kw">era</div><div class="ref-desc">block open ( { )</div></div>
+            <div class="ref-item"><div class="ref-kw">done</div><div class="ref-desc">block close ( } )</div></div>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <div class="ref-heading">comparisons</div>
+          <div class="ref-grid">
+            <div class="ref-item"><div class="ref-kw">slaps</div><div class="ref-desc">equals (==)</div></div>
+            <div class="ref-item"><div class="ref-kw">ghosted</div><div class="ref-desc">not-equal (!=)</div></div>
+            <div class="ref-item"><div class="ref-kw">glowing</div><div class="ref-desc">greater-than (&gt;)</div></div>
+            <div class="ref-item"><div class="ref-kw">cringe</div><div class="ref-desc">less-than (&lt;)</div></div>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <div class="ref-heading">quick snippets — click to insert</div>
+          <div class="snippet-grid">
+            <button class="snippet-btn" onclick="insertSnippet('declare-num')">numfr declare</button>
+            <button class="snippet-btn" onclick="insertSnippet('declare-str')">texting declare</button>
+            <button class="snippet-btn" onclick="insertSnippet('declare-bool')">vibe declare</button>
+            <button class="snippet-btn" onclick="insertSnippet('spill')">spill output</button>
+            <button class="snippet-btn" onclick="insertSnippet('if')">lowkey if/else</button>
+            <button class="snippet-btn" onclick="insertSnippet('while')">highkey while</button>
+            <button class="snippet-btn" onclick="insertSnippet('arith')">arithmetic</button>
+            <button class="snippet-btn" onclick="insertSnippet('hello')">hello world</button>
+          </div>
+        </div>
+
+        <div class="ref-section">
+          <div class="ref-heading">example programs</div>
+          <div class="ref-example">
+            <span class="ex-comment">// valid declaration + output</span><br>
+            <span class="ex-kw">numfr</span> rizz <span class="ex-op">hits</span> <span class="ex-val">100</span> <span class="ex-delim">periodt</span><br>
+            <span class="ex-kw2">spill</span> rizz <span class="ex-delim">periodt</span>
+          </div>
+          <div class="ref-example" style="margin-top:6px;">
+            <span class="ex-comment">// if / else (lowkey / ngl)</span><br>
+            <span class="ex-kw">numfr</span> score <span class="ex-op">hits</span> <span class="ex-val">80</span> <span class="ex-delim">periodt</span><br>
+            <span class="ex-kw2">lowkey</span> score <span class="ex-op">glowing</span> <span class="ex-val">50</span> <span class="ex-kw2">era</span><br>
+            &nbsp;&nbsp;<span class="ex-kw2">spill</span> score <span class="ex-delim">periodt</span><br>
+            <span class="ex-kw2">done</span> <span class="ex-kw2">ngl</span> <span class="ex-kw2">era</span><br>
+            &nbsp;&nbsp;<span class="ex-kw">texting</span> res <span class="ex-op">hits</span> <span class="ex-str">"flopped"</span> <span class="ex-delim">periodt</span><br>
+            <span class="ex-kw2">done</span>
+          </div>
+        </div>
+
+          </div>
+
+        </div><!-- /output-box -->
+
+        <!-- Status box -->
+        <div class="status-box">
+          <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">ready to slay</span>
+          </div>
+          <div>VibeCode v1.0</div>
+        </div>
+
+      </div><!-- /right-body -->
+    </div>
+  </div>
+
+</div>
+
+<!-- DOCS OVERLAY + DRAWER -->
+<div class="docs-overlay" id="docsOverlay" onclick="closeDocs()"></div>
+<div class="docs-drawer" id="docsDrawer">
+  <div class="docs-drawer-header">
+    <div class="docs-drawer-title">VibeCode — Cheat Sheet</div>
+    <button class="docs-close-btn" onclick="closeDocs()">&#10005;</button>
+  </div>
+  <div class="docs-body">
+
+    <div class="docs-section">
+      <div class="docs-section-title">Data Types</div>
+      <table class="docs-table">
+        <tr><td class="docs-kw">numfr</td><td class="docs-sym">→</td><td class="docs-desc">number (int or float)</td></tr>
+        <tr><td class="docs-kw">texting</td><td class="docs-sym">→</td><td class="docs-desc">string / text value</td></tr>
+        <tr><td class="docs-kw">vibe</td><td class="docs-sym">→</td><td class="docs-desc">boolean type</td></tr>
+        <tr><td class="docs-kw">slay</td><td class="docs-sym">→</td><td class="docs-desc">boolean <code>true</code></td></tr>
+        <tr><td class="docs-kw">flop</td><td class="docs-sym">→</td><td class="docs-desc">boolean <code>false</code></td></tr>
+      </table>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Keywords</div>
+      <table class="docs-table">
+        <tr><td class="docs-kw">hits</td><td class="docs-sym">=</td><td class="docs-desc">assignment operator</td></tr>
+        <tr><td class="docs-kw">periodt</td><td class="docs-sym">;</td><td class="docs-desc">end of statement</td></tr>
+        <tr><td class="docs-kw">spill</td><td class="docs-sym">print</td><td class="docs-desc">output / print to console</td></tr>
+        <tr><td class="docs-kw">lowkey</td><td class="docs-sym">if</td><td class="docs-desc">conditional if statement</td></tr>
+        <tr><td class="docs-kw">ngl</td><td class="docs-sym">else</td><td class="docs-desc">else clause</td></tr>
+        <tr><td class="docs-kw">highkey</td><td class="docs-sym">while</td><td class="docs-desc">while loop</td></tr>
+        <tr><td class="docs-kw">era</td><td class="docs-sym">{</td><td class="docs-desc">open block</td></tr>
+        <tr><td class="docs-kw">done</td><td class="docs-sym">}</td><td class="docs-desc">close block</td></tr>
+      </table>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Comparisons</div>
+      <table class="docs-table">
+        <tr><td class="docs-kw">slaps</td><td class="docs-sym">==</td><td class="docs-desc">equals</td></tr>
+        <tr><td class="docs-kw">ghosted</td><td class="docs-sym">!=</td><td class="docs-desc">not equal</td></tr>
+        <tr><td class="docs-kw">glowing</td><td class="docs-sym">&gt;</td><td class="docs-desc">greater than</td></tr>
+        <tr><td class="docs-kw">cringe</td><td class="docs-sym">&lt;</td><td class="docs-desc">less than</td></tr>
+      </table>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Arithmetic Operators</div>
+      <table class="docs-table">
+        <tr><td class="docs-kw">+</td><td class="docs-sym"></td><td class="docs-desc">addition</td></tr>
+        <tr><td class="docs-kw">-</td><td class="docs-sym"></td><td class="docs-desc">subtraction</td></tr>
+        <tr><td class="docs-kw">*</td><td class="docs-sym"></td><td class="docs-desc">multiplication</td></tr>
+        <tr><td class="docs-kw">/</td><td class="docs-sym"></td><td class="docs-desc">division</td></tr>
+      </table>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Syntax — Declaration</div>
+      <div class="docs-code">
+        <span style="color:var(--cyan)">numfr</span> x <span style="color:var(--purple)">hits</span> <span style="color:var(--yellow)">42</span> <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--cyan)">texting</span> name <span style="color:var(--purple)">hits</span> <span style="color:var(--green)">"hello"</span> <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--cyan)">vibe</span> flag <span style="color:var(--purple)">hits</span> <span style="color:var(--pink)">slay</span> <span style="color:var(--orange)">periodt</span>
+      </div>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Syntax — If / Else</div>
+      <div class="docs-code">
+        <span style="color:var(--purple)">lowkey</span> x <span style="color:var(--cyan)">glowing</span> <span style="color:var(--yellow)">10</span> <span style="color:var(--purple)">era</span><br>
+        &nbsp;&nbsp;<span style="color:var(--purple)">spill</span> x <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--purple)">done ngl era</span><br>
+        &nbsp;&nbsp;<span style="color:var(--purple)">spill</span> x <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--purple)">done</span>
+      </div>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Syntax — While Loop</div>
+      <div class="docs-code">
+        <span style="color:var(--cyan)">numfr</span> i <span style="color:var(--purple)">hits</span> <span style="color:var(--yellow)">0</span> <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--purple)">highkey</span> i <span style="color:var(--cyan)">cringe</span> <span style="color:var(--yellow)">5</span> <span style="color:var(--purple)">era</span><br>
+        &nbsp;&nbsp;<span style="color:var(--purple)">spill</span> i <span style="color:var(--orange)">periodt</span><br>
+        <span style="color:var(--purple)">done</span>
+      </div>
+    </div>
+
+    <div class="docs-section">
+      <div class="docs-section-title">Notes</div>
+      <div class="docs-note">
+        Every statement must end with <strong>periodt</strong>.<br>
+        Strings must be wrapped in <strong>"double quotes"</strong>.<br>
+        Variables must be declared before use.<br>
+        Comments use <strong>//</strong> syntax.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const EXAMPLES = {
+  'hello': `// hello world\ntexting greeting hits "hello world bestie" periodt\nspill greeting periodt`,
+  'if-else': `// if / else check\nnumfr score hits 85 periodt\nlowkey score glowing 50 era\n    spill score periodt\ndone ngl era\n    texting result hits "flopped" periodt\n    spill result periodt\ndone`,
+  'while': `// while loop counter\nnumfr ctr hits 0 periodt\nhighkey ctr cringe 5 era\n    spill ctr periodt\ndone`,
+  'arithmetic': `// calculator\nnumfr a hits 20 periodt\nnumfr b hits 5 periodt\nnumfr sum hits a + b periodt\nnumfr diff hits a - b periodt\nnumfr product hits a * b periodt\nspill sum periodt\nspill diff periodt\nspill product periodt`,
+  'bool': `// boolean check\nvibe isLit hits slay periodt\nlowkey isLit slaps slay era\n    texting msg hits "totally lit" periodt\n    spill msg periodt\ndone ngl era\n    texting msg hits "not lit" periodt\n    spill msg periodt\ndone`,
+  'counter': `// counter up to 10\nnumfr i hits 1 periodt\nhighkey i cringe 11 era\n    spill i periodt\ndone`,
+  'track-error': `// tracking errors in a score checker\nnumfr errors hits 0 periodt\nnumfr score hits 45 periodt\nnumfr limit hits 50 periodt\n\n// check if score is too low\nlowkey score cringe limit era\n    errors hits errors + 1 periodt\n    texting msg hits "error: score below limit" periodt\n    spill msg periodt\ndone ngl era\n    texting msg hits "score is valid" periodt\n    spill msg periodt\ndone\n\n// report total errors\nspill errors periodt`,
+};
+
+function loadExample(key) {
+  const code = EXAMPLES[key];
+  if (!code) return;
+  const ed = document.getElementById('editor');
+  ed.value = code;
+  ed.focus();
+  updateLineNums();
+  updateStats();
+  // flash the editor box border
+  const box = ed.closest('.editor-box');
+  if (box) {
+    box.style.transition = 'none';
+    box.style.borderColor = 'var(--cyan)';
+    box.style.boxShadow = '0 0 0 3px var(--cyan-dim)';
+    setTimeout(() => {
+      box.style.transition = 'border-color 0.25s, box-shadow 0.25s';
+      box.style.borderColor = '';
+      box.style.boxShadow = '';
+    }, 500);
+  }
+}
+
+const SNIPPETS = {
+  'declare-num':  'numfr rizz hits 100 periodt',
+  'declare-str':  'texting mood hits "thriving" periodt',
+  'declare-bool': 'vibe isIconic hits slay periodt',
+  'spill':        'spill rizz periodt',
+  'arith':        'numfr clout hits 50 + 25 periodt',
+  'if': `lowkey rizz glowing 50 era\n    spill rizz periodt\ndone ngl era\n    texting result hits "flopped" periodt\ndone`,
+  'while': `numfr ctr hits 0 periodt\nhighkey ctr cringe 3 era\n    spill ctr periodt\ndone`,
+  'hello': `// hello world in VibeCode\ntexting greeting hits "hello world bestie" periodt\nspill greeting periodt`,
+};
+
+function insertSnippet(key) {
+  const ed = document.getElementById('editor');
+  const val = ed.value;
+  const start = ed.selectionStart;
+  const snippet = SNIPPETS[key];
+  ed.value = val.slice(0, start) + (val.length && !val.endsWith('\n') ? '\n' : '') + snippet + '\n' + val.slice(start);
+  ed.focus();
+  updateLineNums();
+  updateStats();
+  switchTab('output');
+}
+
+function handleTab(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ed = e.target;
+    const s = ed.selectionStart, end = ed.selectionEnd;
+    ed.value = ed.value.slice(0, s) + '    ' + ed.value.slice(end);
+    ed.selectionStart = ed.selectionEnd = s + 4;
+    updateLineNums();
+  }
+}
+
+function updateLineNums() {
+  const ed = document.getElementById('editor');
+  const lines = (ed.value || '').split('\n');
+  const nums = document.getElementById('lineNums');
+  nums.innerHTML = lines.map((_, i) =>
+    `<span class="line-num">${i+1}</span>`
+  ).join('');
+  document.getElementById('statLines').textContent = lines.length;
+}
+
+function updateStats() {
+  updateLineNums();
+}
+
+function clearEditor() {
+  document.getElementById('editor').value = '';
+  document.getElementById('outputContent').innerHTML = '';
+  document.getElementById('outputContent').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('statTokens').textContent = '—';
+  setStatus('ready', 'ready to slay');
+  updateLineNums();
+}
+
+function switchTab(tab) {
+  document.getElementById('programOutPanel').classList.toggle('active', tab === 'programout');
+  document.getElementById('outputPanel').classList.toggle('active', tab === 'output');
+  document.getElementById('refPanel').classList.toggle('active', tab === 'ref');
+  document.getElementById('tabProgramOut').classList.toggle('active', tab === 'programout');
+  document.getElementById('tabOutput').classList.toggle('active', tab === 'output');
+  document.getElementById('tabRef').classList.toggle('active', tab === 'ref');
+}
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot' + (state === 'error' ? ' error' : state === 'loading' ? ' loading' : '');
+  txt.textContent = msg;
+}
+
+// ── RENDER OUTPUT ────────────────────────────────────────────────
+
+function el(tag, cls, html) {
+  const d = document.createElement(tag);
+  if (cls) d.className = cls;
+  if (html) d.innerHTML = html;
+  return d;
+}
+
+const TOKEN_TYPE_LABELS = {
+  DATATYPE: 'DATATYPE', IDENTIFIER: 'IDENTIFIER', ASSIGN_OP: 'ASSIGN_OP',
+  NUMERIC_LITERAL: 'NUMERIC', STRING_LITERAL: 'STRING', BOOL_LITERAL: 'BOOL',
+  DELIMITER: 'DELIMITER', OUTPUT_KW: 'OUTPUT_KW', IF_KW: 'IF_KW',
+  ELSE_KW: 'ELSE_KW', WHILE_KW: 'WHILE_KW', BLOCK_OPEN: 'BLOCK_OPEN',
+  BLOCK_CLOSE: 'BLOCK_CLOSE', COMPARISON: 'COMPARISON', ARITH_OP: 'ARITH_OP',
+  LPAREN: 'LPAREN', RPAREN: 'RPAREN',
+};
+
+function togglePhase(header) {
+  header.closest('.phase-card').classList.toggle('collapsed');
+}
+
+function makePhaseCard(phaseClass, num, label, status, badges, bodyHtml) {
+  const card = document.createElement('div');
+  card.className = `phase-card ${phaseClass} fade-in`;
+  const badgeHtml = badges.map(b => `<span class="phase-badge">${b}</span>`).join('');
+  const statusCls = status === 'PASS' ? 'ok' : status === 'FAIL' ? 'err' : 'warn';
+  card.innerHTML = `
+    <div class="phase-card-header" onclick="togglePhase(this)">
+      <div class="phase-num">${num}</div>
+      <div class="phase-card-label">${label}</div>
+      <div class="phase-badges">
+        ${badgeHtml}
+        <span class="phase-status ${statusCls}">${status}</span>
+      </div>
+      <div class="phase-toggle">&#9660;</div>
+    </div>
+    <div class="phase-card-body">${bodyHtml}</div>
+  `;
+  return card;
+}
+
+function renderOutput(data) {
+  const frag = document.createDocumentFragment();
+  const lexResult   = data.lexer;
+  const parseResult = data.parser;
+  const semResult   = data.semantic;
+
+  // ── CONSOLE OUTPUT (spill results) — goes to its own panel ──
+  const consoleFrag = document.createDocumentFragment();
+  const spillLogs = semResult.logs.filter(l => l.type === 'spill');
+  const consoleCard = document.createElement('div');
+  consoleCard.className = 'console-card fade-in';
+  const consoleHasOutput = spillLogs.length > 0;
+  const consoleLines = consoleHasOutput
+    ? spillLogs.map(l => `<div class="console-line"><span class="console-arrow">&#9654;</span> <span class="console-val">${escHtml(l.msg)}</span></div>`).join('')
+    : `<div class="console-empty"><span class="console-empty-icon">&#9643;</span> no output — use <span class="console-kw">spill</span> to print values</div>`;
+  consoleCard.innerHTML = `
+    <div class="console-header">
+      <div class="console-header-left">
+        <span class="console-dot"></span>
+        <span class="console-dot"></span>
+        <span class="console-dot"></span>
+        <span class="console-title">Program Output</span>
+      </div>
+      <span class="console-badge">${spillLogs.length} line(s)</span>
+    </div>
+    <div class="console-body">${consoleLines}</div>
+  `;
+  consoleFrag.appendChild(consoleCard);
+
+  // ── PHASE 1: LEXICAL ANALYSIS ──
+  let lexBody = '';
+  let lexWarn = false;
+  for (const log of lexResult.logs) {
+    if (log.type === 'token') {
+      lexBody += `<div class="out-token-row"><span class="out-tag tag-lexer">[LEXER]</span><span class="token-value">${escHtml(log.value)}</span><span class="token-arrow"> &rarr; </span><span class="token-type">${TOKEN_TYPE_LABELS[log.ttype] || log.ttype}</span></div>`;
+    } else if (log.type === 'ok') {
+      lexBody += `<div class="out-block out-ok">  ✓  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'warn') {
+      lexBody += `<div class="out-block out-warn">  ⚠  ${escHtml(log.msg)}</div>`;
+      lexWarn = true;
+    } else if (log.type === 'lexer-info') {
+      lexBody += `<div class="out-block out-info">  i  ${escHtml(log.msg)}</div>`;
+    }
+  }
+  frag.appendChild(makePhaseCard(
+    'pc-lexer', '01', 'Lexical Analysis',
+    lexWarn ? 'WARN' : 'PASS',
+    [`${lexResult.tokens.length} token(s)`],
+    lexBody || '<div class="out-block out-info">No tokens produced.</div>'
+  ));
+
+  // ── PHASE 2: SYNTAX ANALYSIS ──
+  let parseBody = `<div class="out-block out-info">  [PARSER]  Examining ${lexResult.tokens.length} token(s).</div>`;
+  let parseWarn = false;
+  for (const log of parseResult.logs) {
+    if (log.type === 'parser-info') {
+      parseBody += `<div class="out-block out-info">  <span style="color:var(--cyan)">[PARSER]</span>  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'parser-ok') {
+      parseBody += `<div class="out-block out-ok">  <span style="color:var(--cyan)">[PARSER]</span>  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'ok') {
+      parseBody += `<div class="out-block out-ok">  ✓  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'warn') {
+      parseBody += `<div class="out-block out-warn">  ⚠  ${escHtml(log.msg)}</div>`;
+      parseWarn = true;
+    }
+  }
+  frag.appendChild(makePhaseCard(
+    'pc-parser', '02', 'Syntax Analysis',
+    parseWarn ? 'WARN' : 'PASS',
+    [`${lexResult.tokens.length} token(s) parsed`],
+    parseBody
+  ));
+
+  // ── PHASE 3: SEMANTIC ANALYSIS ──
+  let semBody = '';
+  let semErrors = 0;
+  let semWarns = false;
+  for (const log of semResult.logs) {
+    if (log.type === 'sem-info') {
+      semBody += `<div class="out-block out-info">  <span style="color:var(--pink)">[SEMANTICS]</span>  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'ok') {
+      semBody += `<div class="out-block out-ok">  ✓  ${escHtml(log.msg)}</div>`;
+    } else if (log.type === 'err') {
+      semBody += `<div class="out-block out-err">  ✗  ${escHtml(log.msg)}</div>`;
+      semErrors++;
+    } else if (log.type === 'warn') {
+      semBody += `<div class="out-block out-warn">  ⚠  ${escHtml(log.msg)}</div>`;
+      semWarns = true;
+    } else if (log.type === 'divider') {
+      semBody += `<div class="out-block out-info">  ${'·'.repeat(40)}</div>`;
+    } else if (log.type === 'spill') {
+      semBody += `<div class="out-block">  <span style="color:var(--green)">✓  spill &rarr;</span> <span style="color:var(--yellow);font-weight:700">${escHtml(log.msg)}</span></div>`;
+    }
+  }
+  const semStatus = semErrors > 0 ? 'FAIL' : semWarns ? 'WARN' : 'PASS';
+  frag.appendChild(makePhaseCard(
+    'pc-sem', '03', 'Semantic Analysis',
+    semStatus,
+    [semErrors > 0 ? `${semErrors} error(s)` : 'no errors'],
+    semBody || '<div class="out-block out-info">No semantic output.</div>'
+  ));
+
+  // ── PHASE 4: SYMBOL TABLE ──
+  const sym = semResult.symTable;
+  const levelTotals = semResult.levelTotals || {};
+  const grandTotal = semResult.grandTotal || 0;
+  const keys = Object.keys(sym);
+  let symBody = '';
+  if (keys.length === 0) {
+    symBody = '<div class="out-block out-warn">  (Symbol Table is empty — no variables declared)</div>';
+  } else {
+    // Group entries by level
+    const byLevel = {};
+    for (const [name, e] of Object.entries(sym)) {
+      const lv = e.level ?? 0;
+      if (!byLevel[lv]) byLevel[lv] = [];
+      byLevel[lv].push([name, e]);
+    }
+    symBody = `<table class="sym-table"><thead><tr><th>IDENTIFIER</th><th>TYPE</th><th>VALUE</th><th>LEVEL</th><th></th></tr></thead><tbody>`;
+    for (const lv of Object.keys(byLevel).map(Number).sort((a,b)=>a-b)) {
+      const label = lv === 0 ? 'Global (Level 0)' : `Scope Level ${lv}`;
+      symBody += `<tr class="sym-level-header"><td colspan="5">── ${escHtml(label)} ──</td></tr>`;
+      for (const [name, e] of byLevel[lv]) {
+        const icon = e.type === 'numfr' ? '[N]' : e.type === 'texting' ? '[S]' : '[B]';
+        symBody += `<tr><td class="sym-name">${escHtml(name)}</td><td class="sym-type">${escHtml(e.type)}</td><td class="sym-val">${escHtml(String(e.value))}</td><td class="sym-level">${lv}</td><td class="sym-icon">${icon}</td></tr>`;
+      }
+      symBody += `<tr class="sym-subtotal"><td colspan="5">Subtotal (Level ${lv}): ${byLevel[lv].length} variable(s)</td></tr>`;
+    }
+    symBody += `</tbody><tfoot><tr class="sym-grand-total"><td colspan="5">GRAND TOTAL: ${grandTotal} variable(s) across ${Object.keys(byLevel).length} level(s)</td></tr></tfoot></table>`;
+  }
+  frag.appendChild(makePhaseCard(
+    'pc-sym', '04', 'Symbol Table',
+    keys.length > 0 ? 'PASS' : 'WARN',
+    [`${keys.length} variable(s)`],
+    symBody
+  ));
+
+  return { tokensFrag: frag, consoleFrag };
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── MAIN COMPILE FUNCTION — calls Python backend ─────────────────
+
+async function runCode() {
+  const source = document.getElementById('editor').value.trim();
+  if (!source) {
+    setStatus('error', 'nothing to compile');
+    return;
+  }
+
+  const btn = document.getElementById('runBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  setStatus('loading', 'compiling...');
+
+  // Clear both panels before compile
+  const tokenContent = document.getElementById('outputContent');
+  tokenContent.innerHTML = '';
+  document.getElementById('emptyState').style.display = 'none';
+  tokenContent.style.display = 'flex';
+  tokenContent.style.flexDirection = 'column';
+  tokenContent.style.overflowY = 'auto';
+  tokenContent.style.padding = '16px';
+  tokenContent.style.flex = '1';
+
+  const programContent = document.getElementById('programOutContent');
+  programContent.innerHTML = '';
+  document.getElementById('programOutEmpty').style.display = 'none';
+  programContent.style.display = 'flex';
+  programContent.style.flexDirection = 'column';
+  programContent.style.overflowY = 'auto';
+  programContent.style.padding = '16px';
+  programContent.style.flex = '1';
+
+  try {
+    const res = await fetch('/compile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const { tokensFrag, consoleFrag } = renderOutput(data);
+
+    // Route console output → Program Output tab
+    programContent.appendChild(consoleFrag);
+
+    // Route phase cards → Tokens tab
+    tokenContent.appendChild(tokensFrag);
+
+    // Auto-switch to Program Output tab so user sees results immediately
+    switchTab('programout');
+
+    const tokenCount = data.lexer.tokens.length;
+    document.getElementById('statTokens').textContent = tokenCount;
+
+    const hasErr = data.semantic.errors > 0 || data.parser.logs.some(l => l.type === 'warn');
+    setStatus(hasErr ? 'error' : 'ok', hasErr ? 'compiled with errors' : 'compiled successfully');
+
+  } catch (e) {
+    programContent.innerHTML = `<div class="out-block out-err">Fatal error: ${escHtml(e.message)}</div>`;
+    switchTab('programout');
+    setStatus('error', 'fatal error');
+  }
+
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+// ── DOCS DRAWER ──────────────────────────────────────────────────
+
+function openDocs() {
+  document.getElementById('docsOverlay').classList.add('open');
+  document.getElementById('docsDrawer').classList.add('open');
+}
+
+function closeDocs() {
+  document.getElementById('docsOverlay').classList.remove('open');
+  document.getElementById('docsDrawer').classList.remove('open');
+}
+
+// Close drawer with Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDocs();
+});
+
+// ── THEME ─────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const isDark = theme === 'dark';
+  document.getElementById('themeIcon').innerHTML  = isDark ? '&#9728;' : '&#9790;';
+  document.getElementById('themeLabel').textContent = isDark ? 'light' : 'dark';
+  localStorage.setItem('slay-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+updateLineNums();
+
+// Restore saved theme
+const savedTheme = localStorage.getItem('slay-theme') || 'light';
+applyTheme(savedTheme);
+
+// Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runCode();
+});
+</script>
+</body>
+</html>

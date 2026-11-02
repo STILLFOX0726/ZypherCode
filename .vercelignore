@@ -1,0 +1,5 @@
+__pycache__
+*.pyc
+gunicorn.ctl
+slay_ide.backup.html
+.DS_Store
